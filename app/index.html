@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Text-to-SQL Agent</title>
+<style>
+ body{font-family:system-ui,sans-serif;max-width:900px;margin:2rem auto;padding:0 1rem;color:#1e293b}
+ textarea{width:100%;padding:.7rem;font-size:1rem;border:1px solid #cbd5e1;border-radius:8px;box-sizing:border-box}
+ button{margin-top:.6rem;padding:.6rem 1.2rem;background:#2563eb;color:#fff;border:0;border-radius:8px;font-size:1rem;cursor:pointer}
+ pre{background:#0f172a;color:#e2e8f0;padding:.8rem;border-radius:8px;overflow:auto;direction:ltr}
+ table{border-collapse:collapse;margin-top:.6rem}td,th{border:1px solid #cbd5e1;padding:.3rem .6rem;text-align:left}
+ .step{border-left:3px solid #94a3b8;padding:.2rem .7rem;margin:.5rem 0}
+ .syntactic_reflection{border-color:#ef4444}.semantic_reflection{border-color:#f59e0b}
+ .tag{font-size:.8rem;background:#e2e8f0;border-radius:6px;padding:.1rem .4rem}
+</style></head><body>
+<h2>Text-to-SQL Agent <small class="tag">LangChain + LangGraph + FastAPI</small></h2>
+<textarea id="q" rows="3" placeholder="Ask about the bank data…">What is the total amount transferred from account ACC100001?</textarea>
+<button id="go">Run agent</button>
+<div id="out"></div>
+<script>
+const esc=s=>String(s??"").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+document.getElementById("go").onclick=async()=>{
+ const out=document.getElementById("out");out.textContent="Running…";
+ try{
+  const r=await fetch("/query",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({question:document.getElementById("q").value})});
+  const d=await r.json();
+  if(!r.ok){out.innerHTML="<pre>"+esc(d.detail)+"</pre>";return;}
+  let h="<p><b>Status:</b> "+esc(d.status)+" · syntactic attempts: "+d.syntactic_attempts+
+        " · semantic correction: "+d.semantic_correction_applied+"</p>";
+  if(d.answer)h+="<p>"+esc(d.answer)+"</p>";
+  if(d.sql)h+="<pre>"+esc(d.sql)+"</pre>";
+  if(d.columns.length){h+="<table><tr>"+d.columns.map(c=>"<th>"+esc(c)+"</th>").join("")+"</tr>"+
+     d.rows.map(r=>"<tr>"+r.map(v=>"<td>"+esc(v)+"</td>").join("")+"</tr>").join("")+"</table>";}
+  h+="<h3>Agent trace</h3>"+d.trace.map(t=>"<div class='step "+esc(t.step.split(' ')[0])+"'><b>"+esc(t.step)+"</b>: "+esc(t.detail)+
+     (t.sql?"<pre>"+esc(t.sql)+"</pre>":"")+"</div>").join("");
+  out.innerHTML=h;
+ }catch(e){out.textContent="Request failed: "+e;}
+};
+</script></body></html>
