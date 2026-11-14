@@ -1,7 +1,8 @@
 import sqlite3
+from pathlib import Path
 
 # Connect to SQLite database (It will create the file if it doesn't exist)
-conn = sqlite3.connect('bank_database.db')
+conn = sqlite3.connect(str(Path(__file__).resolve().parent / 'bank_database.db'))
 cursor = conn.cursor()
 
 # Enable Foreign Key support
