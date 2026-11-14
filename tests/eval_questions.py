@@ -39,12 +39,14 @@ EVAL_SET = [
      "ordered": True},
     {"id": 9, "level": "hard",
      "question": "لیست مشتریانی را بده که در جدول انتقال وجه (Transfer)، هم به عنوان مبدأ و هم به عنوان مقصد حضور داشته‌اند و مبالغ تراکنش‌های آن‌ها را مشخص کن.",
-     "gold_sql": "SELECT c_from.FirstName || ' ' || c_from.LastName AS Sender, a_from.AccountNumber AS SenderAccount, "
-                 "c_to.FirstName || ' ' || c_to.LastName AS Receiver, a_to.AccountNumber AS ReceiverAccount, t.Amount "
-                 "FROM Transfer t JOIN Account a_from ON t.FromAccountID = a_from.AccountID "
-                 "JOIN Customer c_from ON a_from.CustomerID = c_from.CustomerID "
-                 "JOIN Account a_to ON t.ToAccountID = a_to.AccountID "
-                 "JOIN Customer c_to ON a_to.CustomerID = c_to.CustomerID;"},
+     "gold_sql": "WITH T AS (SELECT a.CustomerID AS CID, 'Sender' AS Role, t.TransferID, t.Amount FROM Transfer t "
+                 "JOIN Account a ON t.FromAccountID = a.AccountID "
+                 "UNION ALL SELECT a.CustomerID, 'Receiver', t.TransferID, t.Amount FROM Transfer t "
+                 "JOIN Account a ON t.ToAccountID = a.AccountID) "
+                 "SELECT c.FirstName, c.LastName, T.Role, T.TransferID, T.Amount FROM T "
+                 "JOIN Customer c ON c.CustomerID = T.CID "
+                 "WHERE T.CID IN (SELECT CID FROM T WHERE Role='Sender') "
+                 "AND T.CID IN (SELECT CID FROM T WHERE Role='Receiver');"},
     # ---- Reflection demos from the simulator tab -------------------------------------------
     {"id": 10, "level": "reflection",
      "question": "مجموع مبالغ انتقال وجه از حساب مبدأ ACC100001 چقدر است؟",
